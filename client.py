@@ -105,7 +105,6 @@ class MCPClient:
 
 
         tool_plan = await self.plan_tool_usage(query, available_tools)
-        print("selected tool name:{}".format(tool_plan))
 
         # 依次执行工具调用，并收集结果
         iterations=1
@@ -193,6 +192,8 @@ class MCPClient:
         while True:
             try:
                 query = input("\n你: ").strip()
+
+
                 if query.lower() == 'quit':
                     break
 
@@ -251,6 +252,8 @@ class MCPClient:
 
         plan = extract_all_json_strings(content)
         plan = json.loads(plan[0])
+        print("selected tool name:{}".format(plan))
+
         return plan
 
         # 在解析 JSON 之后返回调用计划
