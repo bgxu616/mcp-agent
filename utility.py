@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import json
-from typing import Dict, Any, Union
+from typing import Dict, Any, Union,List
 
 def parse_json_response(response_text: str, fallback: Dict[str, Any] = None) -> Dict[str, Any]:
     """
@@ -214,6 +214,80 @@ def is_valid_json_string(s: str) -> bool:
         return True
     except (json.JSONDecodeError, TypeError):
         return False
+    
+
+    
+
+
+
+def count_meaningful_chars(nested_json_str: str) -> int:
+    # 1. 解析外层 JSON
+    outer = json.loads(nested_json_str)
+    
+    texts = []
+
+    # 2. 处理 multi_search（是一个转义的 JSON 字符串）
+    if "multi_search" in outer:
+        multi_search_str = outer["multi_search"]
+        # 反转义并解析
+        try:
+            multi_data = json.loads(multi_search_str)
+            # 提取 query 和 results 中的 snippet
+            if "query" in multi_data:
+                texts.append(multi_data["query"])
+            if "results" in multi_data:
+                for item in multi_data["results"]:
+                    if "snippet" in item:
+                        texts.append(item["snippet"])
+        except:
+            pass  # 解析失败则跳过
+
+    # 3. 处理 deep_reason（也是一个转义的 JSON 字符串）
+    if "deep_reason" in outer:
+        deep_reason_str = outer["deep_reason"]
+        try:
+            deep_data = json.loads(deep_reason_str)
+            # 提取 directions 中的 summary, bullets
+            if "directions" in deep_data:
+                for direction in deep_data["directions"]:
+                    if "summary" in direction:
+                        texts.append(direction["summary"])
+                    if "bullets" in direction:
+                        texts.extend(direction["bullets"])
+            # 提取 per_direction 中的 ideas, notes
+            if "per_direction" in deep_data:
+                for item in deep_data["per_direction"]:
+                    if "ideas" in item:
+                        texts.extend(item["ideas"])
+                    if "notes" in item:
+                        texts.append(item["notes"])
+            # 提取 deep_signals 中的 insight, why_new
+            if "deep_signals" in deep_data:
+                for signal in deep_data["deep_signals"]:
+                    if "insight" in signal:
+                        texts.append(signal["insight"])
+                    if "why_new" in signal:
+                        texts.append(signal["why_new"])
+            # 提取 doc_markdown（虽然冗余，但包含总结）
+            if "doc_markdown" in deep_data:
+                texts.append(deep_data["doc_markdown"])
+        except:
+            pass
+
+    # 4. 合并所有文本
+    full_text = " ".join(texts)
+
+    # 5. 清洗：只保留中英文字符、数字、常见标点（.,!?;:等）
+    # 去除 JSON 结构字符、转义符、引号等
+    meaningful = re.sub(r'[^a-zA-Z0-9\u4e00-\u9fff.,!?;:\-\s]', '', full_text)
+    meaningful = meaningful.strip()
+
+    # 6. 去除多余空白
+    meaningful = re.sub(r'\s+', ' ', meaningful)
+
+    # 7. 返回有意义字符数（包括空格？通常不包括）
+    # 这里我们统计：所有非空白字符
+    return len(meaningful.replace(' ', '').replace('\n', '').replace('\t', ''))
 
 if __name__ =="__main__":
     llm_output = '<tool_call>\n{"name": "multi_search", "arguments": {"query": "小米汽车怎么样"}}\n<tool_call>'

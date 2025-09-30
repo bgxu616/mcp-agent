@@ -10,6 +10,7 @@ from utility import parse_json_response
 
 from openai import OpenAI 
 from dotenv import load_dotenv
+import time
 
 load_dotenv()
 
@@ -415,7 +416,7 @@ def deep_reason(query: str, upstream_json: Dict, n_deep: int = 3, subgraph: Opti
         str: JSON string containing reasoning results
     """
     print(f"🧠 Starting deep reasoning with {n_deep} directions")
-    
+    start_time =time.time()
     # Step 1: Split reasoning directions
     print("📊 Step 1: Splitting into reasoning directions...")
     directions, direction_docs = _split_reasoning_directions(
@@ -452,6 +453,7 @@ def deep_reason(query: str, upstream_json: Dict, n_deep: int = 3, subgraph: Opti
         "deep_signals": deep_signals,
         "doc_markdown": doc_markdown,
     }
-    
+    duration = time.time()-start_time
+    print(f"Deep Reason Duration: {round(duration)} seconds")  
     print(f"✅ Deep reasoning completed: {len(directions)} directions, {len(deep_signals)} signals")
     return json.dumps(data, ensure_ascii=False)
